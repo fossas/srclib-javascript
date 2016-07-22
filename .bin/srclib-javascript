@@ -106,13 +106,18 @@ parser.command("scan-commonjs")
           process.exit(1);
         }
 
+        var allDeps;
         for(var i=0; i<bower_pkgs.length; i++) {
+          allDeps = [];
+          allDeps.push.apply(allDeps, collectDeps(bower_pkgs[i].dependencies, "dependencies"));
+          allDeps.push.apply(allDeps, collectDeps(bower_pkgs[i].devDependencies, "devDependencies"));
+
           srcunits.push({
             Name: bower_pkgs[i].name,
             Type: "BowerPackage",
             Dir: path.dirname(bower_pkgs[i].path),
             Files: [], // currently do not aggregate filenames
-            Dependencies: collectDeps(bower_pkgs[i].dependencies), // also exclude devDeps
+            Dependencies: allDeps,
             Data: bower_pkgs[i],
             Ops: {depresolve: null, graph: null},
             Config: {}
