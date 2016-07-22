@@ -10,14 +10,15 @@ var execFile = require("child_process").execFile;
 var fs = require("fs");
 var find_bower = require('../lib/find_bower.js')
 
-function collectDeps(deps) {
+function collectDeps(deps, scope) {
   var processed_deps = [];
   deps = deps || [];
   var keys = Object.keys(deps);
   for(var i=0; i<keys.length; i++) {
     processed_deps.push({
       name: keys[i],
-      version: deps[keys[i]]
+      version: deps[keys[i]],
+      scope: scope
     })
   }
   return processed_deps;
@@ -83,12 +84,16 @@ parser.command("scan-commonjs")
 
         files = arrayUnique(pkg.libFiles.concat(pkg.testFiles).filter(function(f) { return fs.statSync(f).isFile(); }));
 
+        var allDeps = [];
+        allDeps.push.apply(allDeps, collectDeps(pkg.package.dependencies, "dependencies"));
+        allDeps.push.apply(allDeps, collectDeps(pkg.package.devDependencies, "devDependencies"));
+
         return {
           Name: pkg.package.name,
           Type: "CommonJSPackage",
           Dir: pkg.dir,
           Files: files,
-          Dependencies: collectDeps(pkg.package.dependencies), // exclude devdeps
+          Dependencies: allDeps,
           Data: pkg.package,
           Ops: {depresolve: null, graph: null},
           Config: {}
