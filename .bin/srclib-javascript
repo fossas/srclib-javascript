@@ -86,7 +86,7 @@ parser.command("scan-commonjs")
 
         var allDeps = [];
         allDeps.push.apply(allDeps, collectDeps(pkg.package.dependencies, "dependencies"));
-        allDeps.push.apply(allDeps, collectDeps(pkg.package.devDependencies, "devDependencies"));
+        // allDeps.push.apply(allDeps, collectDeps(pkg.package.devDependencies, "devDependencies"));
 
         return {
           Name: pkg.package.name,
@@ -110,7 +110,7 @@ parser.command("scan-commonjs")
         for(var i=0; i<bower_pkgs.length; i++) {
           allDeps = [];
           allDeps.push.apply(allDeps, collectDeps(bower_pkgs[i].dependencies, "dependencies"));
-          allDeps.push.apply(allDeps, collectDeps(bower_pkgs[i].devDependencies, "devDependencies"));
+          // allDeps.push.apply(allDeps, collectDeps(bower_pkgs[i].devDependencies, "devDependencies"));
 
           srcunits.push({
             Name: bower_pkgs[i].name,
