@@ -1,247 +1,246 @@
 #!/usr/bin/env node
 
-var parser = require("nomnom");
-var glob = require("glob");
-var findpkgs = require("commonjs-findpkgs");
-var jsgAdapter = require("../lib/jsg_adapter")
-var npm = require("npm");
-var path = require("path");
-var execFile = require("child_process").execFile;
-var fs = require("fs");
+var parser = require('nomnom')
+var glob = require('glob')
+var findpkgs = require('commonjs-findpkgs')
+var jsgAdapter = require('../lib/jsg_adapter')
+var npm = require('npm')
+var path = require('path')
+var execFile = require('child_process').execFile
+var fs = require('fs')
 var find_bower = require('../lib/find_bower.js')
 
-function collectDeps(deps, scope) {
-  var processed_deps = [];
-  deps = deps || [];
-  var keys = Object.keys(deps);
-  for(var i=0; i<keys.length; i++) {
+function collectDeps (deps, scope) {
+  var processed_deps = []
+  deps = deps || []
+  var keys = Object.keys(deps)
+  for (var i = 0; i < keys.length; i++) {
     processed_deps.push({
       name: keys[i],
       version: deps[keys[i]],
       scope: scope
     })
   }
-  return processed_deps;
+  return processed_deps
 }
 
-parser.command("scan-commonjs")
-  .option("repo", {
-    help: "repository URI"
+parser.command('scan-commonjs')
+  .option('repo', {
+    help: 'repository URI'
   })
-  .option("subdir", {
-    help: "subdirectory in repository"
+  .option('subdir', {
+    help: 'subdirectory in repository'
   })
-  .callback(function(opts) {
+  .callback(function (opts) {
     // TODO(sqs): support ScanIgnore from repo Srcfile (pass to findpkgs ignore param)
-    findpkgs(".", ["node_modules", "bower_components"], function scanNpmPackages(err, pkgs) {
+    findpkgs('.', ['node_modules', 'bower_components'], function scanNpmPackages (err, pkgs) {
       if (err) {
-        console.error("Scanning for NPM packages failed:", err);
-        process.exit(1);
+        console.error('Scanning for NPM packages failed:', err)
+        process.exit(1)
       }
 
       // omit package.json files that have syntax errors
-      pkgs = pkgs.filter(function(pkg) { return !pkg.error; });
+      pkgs = pkgs.filter(function (pkg) { return !pkg.error })
 
       // filter out undesirable packages (packages whose paths contain
       // "node_modules", "test", etc.)
-      pkgs = pkgs.filter(function(pkg) {
+      pkgs = pkgs.filter(function (pkg) {
         // TODO(sqs): we probably want to process things in node_modules for
         // local code, so remove this filter.
-        var pathComps = pkg.dir.split("/");
-        return pathComps.indexOf("node_modules") == -1 && pathComps.indexOf("test") == -1 && pathComps.indexOf("templates") == -1 && pathComps.indexOf("bower_components") == -1;
-      });
+        var pathComps = pkg.dir.split('/')
+        return pathComps.indexOf('node_modules') == -1 && pathComps.indexOf('test') == -1 && pathComps.indexOf('templates') == -1 && pathComps.indexOf('bower_components') == -1
+      })
 
       // filter out undesirable source files (minified files) from
       // packages
-      pkgs.forEach(function(pkg) {
-        pkg.libFiles = pkg.libFiles.filter(function(f) {
-          return !/\.min\.js$/.test(f);
-        });
-      });
+      pkgs.forEach(function (pkg) {
+        pkg.libFiles = pkg.libFiles.filter(function (f) {
+          return !/\.min\.js$/.test(f)
+        })
+      })
 
       // automatically include files in the src dir (not just
       // lib). this is somewhat common for client-side libs even
       // though it is technically in violation of the commonjs spec.
       // TODO(sqs): add this functionality (as an option?) to commonjs-findpkgs?
-      pkgs.forEach(function(pkg) {
-        var srcFiles = glob.sync(path.join(pkg.dir, 'src/**/*.js'));
-        if (srcFiles) pkg.libFiles.push.apply(pkg.libFiles, srcFiles);
-      });        
+      pkgs.forEach(function (pkg) {
+        var srcFiles = glob.sync(path.join(pkg.dir, 'src/**/*.js'))
+        if (srcFiles) pkg.libFiles.push.apply(pkg.libFiles, srcFiles)
+      })
 
       // automatically include files in the dir containing the main file (if it's a subdir)
       // TODO(sqs): add this functionality (as an option?) to commonjs-findpkgs?
-      pkgs.forEach(function(pkg) {
+      pkgs.forEach(function (pkg) {
         if (pkg.package.main && pkg.package.main.indexOf('/') != -1) {
-          var files = glob.sync(path.join(pkg.dir, path.dirname(pkg.package.main), '**/*.js'));
-          if (files) pkg.libFiles.push.apply(pkg.libFiles, files);
+          var files = glob.sync(path.join(pkg.dir, path.dirname(pkg.package.main), '**/*.js'))
+          if (files) pkg.libFiles.push.apply(pkg.libFiles, files)
         }
-      });        
+      })
 
       // convert from commonjs-findpkgs format to source unit
-      var srcunits = pkgs.map(function(pkg) {
+      var srcunits = pkgs.map(function (pkg) {
         // collect all deps
-        //var allDeps = [{name: "node", "version": ""}];
+        // var allDeps = [{name: "node", "version": ""}];
 
-        files = arrayUnique(pkg.libFiles.concat(pkg.testFiles).filter(function(f) { return fs.statSync(f).isFile(); }));
+        files = arrayUnique(pkg.libFiles.concat(pkg.testFiles).filter(function (f) { return fs.statSync(f).isFile() }))
 
-        var allDeps = [];
-        allDeps.push.apply(allDeps, collectDeps(pkg.package.dependencies, "dependencies"));
+        var allDeps = []
+        allDeps.push.apply(allDeps, collectDeps(pkg.package.dependencies, 'dependencies'))
         // allDeps.push.apply(allDeps, collectDeps(pkg.package.devDependencies, "devDependencies"));
 
         return {
           Name: pkg.package.name,
-          Type: "CommonJSPackage",
+          Type: 'CommonJSPackage',
           Dir: pkg.dir,
           Files: files,
           Dependencies: allDeps,
           Data: pkg.package,
           Ops: {depresolve: null, graph: null},
           Config: {}
-        };
-      });
+        }
+      })
 
-      find_bower('.', ["bower_components", "node_modules"], function(err, bower_pkgs) {
+      find_bower('.', ['bower_components', 'node_modules'], function (err, bower_pkgs) {
         if (err) {
-          console.error("Scanning bower packages failed:", err);
-          process.exit(1);
+          console.error('Scanning bower packages failed:', err)
+        } else {
+          var allDeps
+          for (var i = 0; i < bower_pkgs.length; i++) {
+            allDeps = []
+            allDeps.push.apply(allDeps, collectDeps(bower_pkgs[i].dependencies, 'dependencies'))
+            // allDeps.push.apply(allDeps, collectDeps(bower_pkgs[i].devDependencies, "devDependencies"));
+
+            srcunits.push({
+              Name: bower_pkgs[i].name,
+              Type: 'BowerPackage',
+              Dir: path.dirname(bower_pkgs[i].path),
+              Files: [], // currently do not aggregate filenames
+              Dependencies: allDeps,
+              Data: bower_pkgs[i],
+              Ops: {depresolve: null, graph: null},
+              Config: {}
+            })
+          }
         }
 
-        var allDeps;
-        for(var i=0; i<bower_pkgs.length; i++) {
-          allDeps = [];
-          allDeps.push.apply(allDeps, collectDeps(bower_pkgs[i].dependencies, "dependencies"));
-          // allDeps.push.apply(allDeps, collectDeps(bower_pkgs[i].devDependencies, "devDependencies"));
-
-          srcunits.push({
-            Name: bower_pkgs[i].name,
-            Type: "BowerPackage",
-            Dir: path.dirname(bower_pkgs[i].path),
-            Files: [], // currently do not aggregate filenames
-            Dependencies: allDeps,
-            Data: bower_pkgs[i],
-            Ops: {depresolve: null, graph: null},
-            Config: {}
-          });
-        }
-
-        console.log(JSON.stringify(srcunits, null, 2));
-      });
-    });
+        console.log(JSON.stringify(srcunits, null, 2))
+      })
+    })
   })
-  .help("scan for CommonJS packages");
+  .help('scan for CommonJS packages')
 
-parser.command("depresolve")
-  .callback(function(opts) {
+parser.command('depresolve')
+  .callback(function (opts) {
     var stdin = process.stdin,
-    stdout = process.stdout,
-    inputChunks = [];
+      stdout = process.stdout,
+      inputChunks = []
 
-    stdin.resume();
-    stdin.setEncoding("utf8");
+    stdin.resume()
+    stdin.setEncoding('utf8')
 
-    stdin.on("data", function (chunk) {
-      inputChunks.push(chunk);
-    });
+    stdin.on('data', function (chunk) {
+      inputChunks.push(chunk)
+    })
 
-    stdin.on("end", function () {
-      var inputJSON = inputChunks.join("");
-      var commonJSPackage = JSON.parse(inputJSON);
+    stdin.on('end', function () {
+      var inputJSON = inputChunks.join('')
+      var commonJSPackage = JSON.parse(inputJSON)
 
-      var remaining = commonJSPackage.Dependencies ? commonJSPackage.Dependencies.length : 0;
-      var resolutions = [];
+      var remaining = commonJSPackage.Dependencies ? commonJSPackage.Dependencies.length : 0
+      var resolutions = []
 
       if (remaining == 0) {
-        console.log('[]');
-        return;
+        console.log('[]')
+        return
       }
 
-      commonJSPackage.Dependencies.forEach(function(dep) {
-        var i = commonJSPackage.Dependencies.indexOf(dep);
-        resolutions[i] = {Raw: dep};
-        var spec = dep.name+(dep.version ? "@"+dep.version : "");
-        npm.load(function(err, npm) {
+      commonJSPackage.Dependencies.forEach(function (dep) {
+        var i = commonJSPackage.Dependencies.indexOf(dep)
+        resolutions[i] = {Raw: dep}
+        var spec = dep.name + (dep.version ? '@' + dep.version : '')
+        npm.load(function (err, npm) {
           if (err) {
-            console.error("npm.load failed: ", err);
+            console.error('npm.load failed: ', err)
             process.exit(1)
           }
 
-          npm.commands.view(["--silent", spec], function(err,data) {
+          npm.commands.view(['--silent', spec], function (err, data) {
             if (hardcodedRepoURLs[spec]) {
-              data = {"": {}}
+              data = {'': {}}
               err = null
             }
 
             if (err) {
-              resolutions[i].Error = "error occurred while resolving '" + spec + "': " + JSON.stringify(err);
+              resolutions[i].Error = "error occurred while resolving '" + spec + "': " + JSON.stringify(err)
             } else if (!data || Object.keys(data).length == 0) {
-              resolutions[i].Error = "no npm package found with spec " + JSON.stringify(spec);
+              resolutions[i].Error = 'no npm package found with spec ' + JSON.stringify(spec)
             } else {
               // Choose a version at random if it spits back a lot (TODO(sqs):
               // this is stupid, we want the version that `npm install` would
               // install, not just any random version, especially when
               // version=='*').
-              var chooseVersion = Object.keys(data)[0];
-              var info = data[chooseVersion];
+              var chooseVersion = Object.keys(data)[0]
+              var info = data[chooseVersion]
 
-              var repoURL = "";
+              var repoURL = ''
               if (hardcodedRepoURLs[spec]) {
-                repoURL = hardcodedRepoURLs[spec];
+                repoURL = hardcodedRepoURLs[spec]
               } else if (info.repository) {
-                if (typeof info.repository == "string") repoURL = info.repository;
-                else repoURL = info.repository.url;
+                if (typeof info.repository === 'string') repoURL = info.repository
+                else repoURL = info.repository.url
               }
 
               resolutions[i].Target = {
                 ToRepoCloneURL: repoURL,
-	        ToUnit: info.name,
-	        ToUnitType: "CommonJSPackage",
-	        ToVersionString: info.version,
-              };
+                ToUnit: info.name,
+                ToUnitType: 'CommonJSPackage',
+                ToVersionString: info.version
+              }
             }
 
-            remaining--;
+            remaining--
             if (remaining == 0) {
               // done resolving all
-              console.log(JSON.stringify(resolutions, null, 2));
+              console.log(JSON.stringify(resolutions, null, 2))
             }
-          });
-        });
-      });
-    });
+          })
+        })
+      })
+    })
   })
-  .help("resolves dependencies of a CommonJS package");
+  .help('resolves dependencies of a CommonJS package')
 
-var hardcodedRepoURLs = {};
+var hardcodedRepoURLs = {}
 
-parser.command("graph")
-  .callback(function(opts) {
+parser.command('graph')
+  .callback(function (opts) {
     var stdin = process.stdin,
-    stdout = process.stdout,
-    inputChunks = [];
+      stdout = process.stdout,
+      inputChunks = []
 
-    stdin.resume();
-    stdin.setEncoding("utf8");
+    stdin.resume()
+    stdin.setEncoding('utf8')
 
-    stdin.on("data", function (chunk) {
-      inputChunks.push(chunk);
-    });
+    stdin.on('data', function (chunk) {
+      inputChunks.push(chunk)
+    })
 
-    stdin.on("end", function () {
-      var inputJSON = inputChunks.join("");
-      var commonJSPackage = JSON.parse(inputJSON);
+    stdin.on('end', function () {
+      var inputJSON = inputChunks.join('')
+      var commonJSPackage = JSON.parse(inputJSON)
 
-      function graph() {
+      function graph () {
         if (commonJSPackage.Files.length == 0) {
-          console.log("{}");
-          process.exit(0);
+          console.log('{}')
+          process.exit(0)
         }
-        jsgAdapter.run(".", commonJSPackage, function(err, graphData) {
+        jsgAdapter.run('.', commonJSPackage, function (err, graphData) {
           if (err) {
-            console.error("Graphing " + commonJSPackage.Name + " failed:", err);
-            process.exit(1);
+            console.error('Graphing ' + commonJSPackage.Name + ' failed:', err)
+            process.exit(1)
           }
-          console.log(JSON.stringify(graphData, null, 2));
-        });
+          console.log(JSON.stringify(graphData, null, 2))
+        })
       }
 
       // TODO(sqs) install npm deps if we're in a docker container, since we can't rely on
@@ -254,17 +253,16 @@ parser.command("graph")
         // need to `npm install /src` from a dir other than /src to get `npm
         // install` to do anything.
 
-        var packageDir = path.join("/src", commonJSPackage.Dir);
-        console.error("Installing npm package in dir", packageDir, "...");
-        execFile("npm", ["install", "--ignore-scripts", packageDir], {cwd: "/"}, function(err, stdout, stderr) {
-          if (stderr) console.error(stderr);
-          if (stdout) console.error(stdout);
+        var packageDir = path.join('/src', commonJSPackage.Dir)
+        console.error('Installing npm package in dir', packageDir, '...')
+        execFile('npm', ['install', '--ignore-scripts', packageDir], {cwd: '/'}, function (err, stdout, stderr) {
+          if (stderr) console.error(stderr)
+          if (stdout) console.error(stdout)
           if (err) {
-            console.error("warning: npm install in Docker container failed: ", err, "(continuing with graphing...)");
+            console.error('warning: npm install in Docker container failed: ', err, '(continuing with graphing...)')
           }
-          graph();
-        });
-
+          graph()
+        })
 
         // It's apparently impossible to silence npm install output when using
         // npm.install. :(
@@ -289,17 +287,17 @@ parser.command("graph")
         //   });
         // });
       } else {
-        graph();
+        graph()
       }
-    });
+    })
   })
-  .help("graph a CommonJS package using jsg/tern");
+  .help('graph a CommonJS package using jsg/tern')
 
-parser.parse();
+parser.parse()
 
-var arrayUnique = function(a) {
-    return a.reduce(function(p, c) {
-        if (p.indexOf(c) < 0) p.push(c);
-        return p;
-    }, []);
-};
+var arrayUnique = function (a) {
+  return a.reduce(function (p, c) {
+    if (p.indexOf(c) < 0) p.push(c)
+    return p
+  }, [])
+}
