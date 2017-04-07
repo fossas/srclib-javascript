@@ -26,6 +26,7 @@
   },
   "homepage": "https://github.com/sourcegraph/srclib-javascript",
   "dependencies": {
+    "read-package-json": "~2.0.3",
     "async": "^1.5.2",
     "bower-json": "^0.7.0",
     "commonjs-findpkgs": "0.0.7",

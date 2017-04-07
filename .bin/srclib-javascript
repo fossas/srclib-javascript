@@ -2,7 +2,7 @@
 
 var parser = require('nomnom')
 var glob = require('glob')
-var findpkgs = require('commonjs-findpkgs')
+var findpkgs = require('../lib/find_commonjs.js')
 var jsgAdapter = require('../lib/jsg_adapter')
 var npm = require('npm')
 var path = require('path')
@@ -36,7 +36,6 @@ parser.command('scan-commonjs')
     findpkgs('.', ['node_modules', 'bower_components'], function scanNpmPackages (err, pkgs) {
       if (err) {
         console.error('Scanning for NPM packages failed:', err)
-        process.exit(1)
       }
 
       // omit package.json files that have syntax errors
