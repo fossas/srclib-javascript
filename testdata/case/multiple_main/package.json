@@ -1,0 +1,11 @@
+{
+  "name": "multiple_main",
+  "version": "1.0.0",
+  "description": "",
+  "main": ["index.js", "file2.css"],
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
+}
