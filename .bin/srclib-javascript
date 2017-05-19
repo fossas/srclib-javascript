@@ -10,7 +10,7 @@ var execFile = require('child_process').execFile
 var fs = require('fs')
 var find_bower = require('../lib/find_bower.js')
 
-function collectDeps (deps, scope) {
+function collectDeps (deps, scope, path) {
   var processed_deps = []
   deps = deps || []
   var keys = Object.keys(deps)
@@ -18,7 +18,8 @@ function collectDeps (deps, scope) {
     processed_deps.push({
       name: keys[i],
       version: deps[keys[i]],
-      scope: scope
+      scope: scope,
+      path: path
     })
   }
   return processed_deps
@@ -84,7 +85,7 @@ parser.command('scan-commonjs')
         files = arrayUnique(pkg.libFiles.concat(pkg.testFiles).filter(function (f) { return fs.statSync(f).isFile() }))
 
         var allDeps = []
-        allDeps.push.apply(allDeps, collectDeps(pkg.package.dependencies, 'dependencies'))
+        allDeps.push.apply(allDeps, collectDeps(pkg.package.dependencies, 'dependencies', path.join(pkg.dir, 'package.json')))
         // allDeps.push.apply(allDeps, collectDeps(pkg.package.devDependencies, "devDependencies"));
 
         return {
@@ -103,16 +104,17 @@ parser.command('scan-commonjs')
         if (err) {
           console.error('Scanning bower packages failed:', err)
         } else {
-          var allDeps
+          var allDeps, dir
           for (var i = 0; i < bower_pkgs.length; i++) {
+            dir = path.dirname(bower_pkgs[i].path) || ''
             allDeps = []
-            allDeps.push.apply(allDeps, collectDeps(bower_pkgs[i].dependencies, 'dependencies'))
+            allDeps.push.apply(allDeps, collectDeps(bower_pkgs[i].dependencies, 'dependencies'), path.join(dir, 'bower.json'))
             // allDeps.push.apply(allDeps, collectDeps(bower_pkgs[i].devDependencies, "devDependencies"));
 
             srcunits.push({
               Name: bower_pkgs[i].name,
               Type: 'BowerPackage',
-              Dir: path.dirname(bower_pkgs[i].path),
+              Dir: dir,
               Files: [], // currently do not aggregate filenames
               Dependencies: allDeps,
               Data: bower_pkgs[i],
