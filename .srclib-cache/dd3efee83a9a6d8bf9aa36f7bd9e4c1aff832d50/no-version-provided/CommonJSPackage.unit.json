@@ -1,0 +1,1 @@
+{"Name":"no-version-provided","Type":"CommonJSPackage","Repo":"github.com/fossas/srclib-javascript","Files":["testdata/case/js-misc/no-version-provided/index.js"],"Dir":"testdata/case/js-misc/no-version-provided","Data":{"_id":"no-version-provided@","name":"no-version-provided","readme":"ERROR: No README data found!","version":""},"Ops":{"depresolve":null,"graph":null}}

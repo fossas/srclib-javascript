@@ -27,7 +27,8 @@ function collectDeps (deps, scope, path) {
 
 parser.command('scan-commonjs')
   .option('repo', {
-    help: 'repository URI'
+    help: 'repository URI',
+    flag: true
   })
   .option('subdir', {
     help: 'subdirectory in repository'

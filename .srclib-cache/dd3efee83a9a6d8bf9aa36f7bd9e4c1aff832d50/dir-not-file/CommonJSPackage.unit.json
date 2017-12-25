@@ -1,0 +1,1 @@
+{"Name":"dir-not-file","Type":"CommonJSPackage","Repo":"github.com/fossas/srclib-javascript","Files":["testdata/case/js-misc/dir-not-file/lib/index.js"],"Dir":"testdata/case/js-misc/dir-not-file","Data":{"_id":"dir-not-file@0.0.1","main":"lib","name":"dir-not-file","readme":"ERROR: No README data found!","version":"0.0.1"},"Ops":{"depresolve":null,"graph":null}}

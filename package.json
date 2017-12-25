@@ -33,7 +33,7 @@
     "glob": "^4.0.6",
     "jsg": "*",
     "nomnom": "^1.8.0",
-    "npm": "^1.4.21"
+    "npm": "^2.15.10"
   },
   "bundledDependencies": [
     "jsg"
