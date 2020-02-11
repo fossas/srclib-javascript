@@ -1,4 +1,5 @@
 # srclib-javascript [![Build Status](https://travis-ci.org/sourcegraph/srclib-javascript.png?branch=master)](https://travis-ci.org/sourcegraph/srclib-javascript)
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Ffossas%2Fsrclib-javascript.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Ffossas%2Fsrclib-javascript?ref=badge_shield)
 
 **srclib-javascript** is a [srclib](https://sourcegraph.com/sourcegraph/srclib)
 toolchain that performs JavaScript (Node.js) code analysis: type inference,
@@ -108,3 +109,7 @@ Patches are welcomed via GitHub pull request! See
 [CONTRIBUTING.md](./CONTRIBUTING.md) for more information.
 
 srclib-javascript's type inference is based on [Tern](http://ternjs.net/).
+
+
+## License
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Ffossas%2Fsrclib-javascript.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Ffossas%2Fsrclib-javascript?ref=badge_large)
